@@ -1,5 +1,5 @@
 /**
-  You need to create an express HTTP server in Node.js which will handle the logic of a todo list app.
+You need to create an express HTTP server in Node.js which will handle the logic of a todo list app.
   - Don't use any database, just store all the data in an array to store the todo list data (in-memory)
   - Hard todo: Try to save responses in files, so that even if u exit the app and run it again, the data remains (similar to databases)
 
@@ -43,25 +43,49 @@ const express = require('express');
 const bodyParser = require('body-parser');
 
 const app = express();
-const tdlist =[
-    { "id": 1, "title": 'Do nothing', "description": "acsfasfasfasfscsc" },
-    { "id": 2, "title": 'Code', "description": "acscsc" }] 
+const tdlist = [
+  { "id": 1, "title": 'Do nothing', "description": "acsfasfasfasfscsc" },
+  { "id": 2, "title": 'Code', "description": "acscsc" }]
+let max = 2
 app.use(bodyParser.json());
-app.get('/todos',(req,res)=>[
+app.get('/todos', (req, res) => [
   res.json(tdlist)
 ])
-app.get('/todos/:id',(req,res)=>{
+app.get('/todos/:id', (req, res) => {
   let id = req.params.id
-  let selectedTodo = tdlist.findIndex((data)=>data.id == id)
-  if(selectedTodo>0){
+  let selectedTodo = tdlist.findIndex((data) => data.id == id)
+  console.log(selectedTodo)
+  if (selectedTodo >= 0) {
     return res.send(tdlist[selectedTodo])
   }
-  res.status(404).json({'error':"Todo Not Found"})
+  res.status(404).json({ 'error': "Todo Not Found" })
 })
-app.post('/todos',(req,res)=>{
-  req.body
+app.post('/todos', (req, res) => {
+  let title = req.body.title;
+  let description = req.body.description
+  let completed = req.body.completed || false;
+  if(title){
+
+    let obj = {
+      id:++max,
+      title,
+      description,
+      completed
+    }
+    tdlist.push(obj)
+    res.status(201).send({message:"Todo created"})
+  }
+  res.status(500).send("Error Occured")
 })
-app.listen(3000, ()=>{
-  console.log("Server running ....")
+
+app.put('/todos/:id',(req,res)=>{
+  const id =req.params.id
+  tdlist.findIndex((data)=>data.id===id)
+  if(id<0){
+    res.status(404)
+  }
+})
+app.listen(3000, () => {
+  console.log("Server running ....");
 })
 module.exports = app;
