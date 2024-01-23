@@ -39,53 +39,67 @@ You need to create an express HTTP server in Node.js which will handle the logic
 
   Testing the server - run `npm run test-todoServer` command in terminal
  */
-const express = require('express');
-const bodyParser = require('body-parser');
+const express = require("express");
+const bodyParser = require("body-parser");
 
 const app = express();
 const tdlist = [
-  { "id": 1, "title": 'Do nothing', "description": "acsfasfasfasfscsc" },
-  { "id": 2, "title": 'Code', "description": "acscsc" }]
-let max = 2
+  { id: 1, title: "Do nothing", description: "acsfasfasfasfscsc" },
+  { id: 2, title: "Code", description: "acscsc" },
+];
+let max = 2;
 app.use(bodyParser.json());
-app.get('/todos', (req, res) => [
-  res.json(tdlist)
-])
-app.get('/todos/:id', (req, res) => {
-  let id = req.params.id
-  let selectedTodo = tdlist.findIndex((data) => data.id == id)
-  console.log(selectedTodo)
+app.get("/todos", (req, res) => [res.json(tdlist)]);
+app.get("/todos/:id", (req, res) => {
+  let id = req.params.id;
+  let selectedTodo = tdlist.findIndex((data) => data.id == id);
+  console.log(selectedTodo);
   if (selectedTodo >= 0) {
-    return res.send(tdlist[selectedTodo])
+    return res.send(tdlist[selectedTodo]);
   }
-  res.status(404).json({ 'error': "Todo Not Found" })
-})
-app.post('/todos', (req, res) => {
+  res.status(404).json({ error: "Todo Not Found" });
+});
+app.post("/todos", (req, res) => {
   let title = req.body.title;
-  let description = req.body.description
+  let description = req.body.description;
   let completed = req.body.completed || false;
-  if(title){
-
+  if (title) {
     let obj = {
-      id:++max,
+      id: ++max,
       title,
       description,
-      completed
-    }
-    tdlist.push(obj)
-    res.status(201).send({message:"Todo created"})
+      completed,
+    };
+    tdlist.push(obj);
+    return res.status(201).send({ message: "Todo created" });
   }
-  res.status(500).send("Error Occured")
-})
+  res.status(500).send("Error Occured");
+});
 
-app.put('/todos/:id',(req,res)=>{
-  const id =req.params.id
-  tdlist.findIndex((data)=>data.id===id)
-  if(id<0){
-    res.status(404)
+app.put("/todos/:id", (req, res) => {
+  const id = req.params.id;
+  const updates = req.body;
+  const position = tdlist.findIndex((data) => data.id == id);
+
+  if (position < 0) {
+    return res.status(404).send("Not found");
   }
-})
+  Object.assign(tdlist[position], updates);
+  return res.status(200).send("OK");
+});
+
+app.delete("/todos/:id", (req, res) => {
+  const id = req.params.id;
+  const position = tdlist.findIndex((data) => data.id == id);
+
+  if (position < 0) {
+    return res.status(404).send("Not found");
+  }
+  tdlist.splice(position,1)
+  res.status(200).send("Deleted");
+});
+
 app.listen(3000, () => {
   console.log("Server running ....");
-})
+});
 module.exports = app;
