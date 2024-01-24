@@ -39,26 +39,43 @@ You need to create an express HTTP server in Node.js which will handle the logic
 
   Testing the server - run `npm run test-todoServer` command in terminal
  */
+const fs = require("fs");
 const express = require("express");
 const bodyParser = require("body-parser");
 
 const app = express();
-const tdlist = [
-  { id: 1, title: "Do nothing", description: "acsfasfasfasfscsc" },
-  { id: 2, title: "Code", description: "acscsc" },
-];
-let max = 2;
+let max = undefined;
+function readFiles(callback) {
+  fs.readFile("todo.json", (err, data) => {
+    callback(JSON.parse(data));
+  });
+}
+const setMax = (data) => {
+  max = Math.max(...data["data"].map((o) => o.id));
+};
+readFiles(setMax);
+
 app.use(bodyParser.json());
-app.get("/todos", (req, res) => [res.json(tdlist)]);
+
+app.get("/todos", (req, res) => {
+  readFiles((data) => {
+    res.json(data);
+  });
+});
+
 app.get("/todos/:id", (req, res) => {
   let id = req.params.id;
-  let selectedTodo = tdlist.findIndex((data) => data.id == id);
-  console.log(selectedTodo);
-  if (selectedTodo >= 0) {
-    return res.send(tdlist[selectedTodo]);
-  }
-  res.status(404).json({ error: "Todo Not Found" });
+  const getTodo = (data) => {
+    let tdlist = data["data"];
+    let selectedTodo = tdlist.findIndex((data) => data.id == id);
+    if (selectedTodo >= 0) {
+      return res.send(tdlist[selectedTodo]);
+    }
+    res.status(404).json({ error: "Todo Not Found" });
+  };
+  readFiles(getTodo);
 });
+
 app.post("/todos", (req, res) => {
   let title = req.body.title;
   let description = req.body.description;
@@ -70,33 +87,64 @@ app.post("/todos", (req, res) => {
       description,
       completed,
     };
-    tdlist.push(obj);
-    return res.status(201).send({ message: "Todo created" });
+    const addTodo = (data) => {
+      let todoList = data["data"];
+      todoList.push(obj);
+      fs.writeFile("todo.json", JSON.stringify(data), (err) => {
+        if (err) {
+          return res.status(500).send("Error occured");
+        } else {
+          return res.status(201).send("Todo Created");
+        }
+      });
+    };
+    readFiles(addTodo);
+  } else {
+    return res.status(500).send("Error Occured");
   }
-  res.status(500).send("Error Occured");
 });
 
 app.put("/todos/:id", (req, res) => {
   const id = req.params.id;
   const updates = req.body;
-  const position = tdlist.findIndex((data) => data.id == id);
+  const updateTodo = (data) => {
+    let tdlist = data["data"];
+    const position = tdlist.findIndex((data) => data.id == id);
+    if (position < 0) {
+      return res.status(404).send("Not found");
+    }
+    Object.assign(tdlist[position], updates);
 
-  if (position < 0) {
-    return res.status(404).send("Not found");
-  }
-  Object.assign(tdlist[position], updates);
-  return res.status(200).send("OK");
+    fs.writeFile("todo.json", JSON.stringify(data), (err) => {
+      if (err) {
+        return res.status(500).send("Error occured");
+      } else {
+        return res.status(200).send("Updated");
+      }
+    });
+  };
+  readFiles(updateTodo);
 });
 
 app.delete("/todos/:id", (req, res) => {
   const id = req.params.id;
-  const position = tdlist.findIndex((data) => data.id == id);
+  const deleteTodo = (data) => {
+    let tdlist = data["data"];
+    const position = tdlist.findIndex((data) => data.id == id);
+    if (position < 0) {
+      return res.status(404).send("Not found");
+    }
+    tdlist.splice(position, 1);
 
-  if (position < 0) {
-    return res.status(404).send("Not found");
-  }
-  tdlist.splice(position,1)
-  res.status(200).send("Deleted");
+    fs.writeFile("todo.json", JSON.stringify(data), (err) => {
+      if (err) {
+        return res.status(500).send("Error occured");
+      } else {
+        return res.status(200).send("Deleted");
+      }
+    });
+  };
+  readFiles(deleteTodo);
 });
 
 app.listen(3000, () => {
