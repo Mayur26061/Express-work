@@ -29,27 +29,76 @@
   Testing the server - run `npm run test-authenticationServer` command in terminal
  */
 
-const express = require("express")
+const express = require("express");
 const PORT = 3000;
 const app = express();
-const bodyParser = require('body-parser')
-// write your logic here, DONT WRITE app.listen(3000) when you're running tests, the tests will automatically start the 
-let signupData = []
-app.use(bodyParser.json())
-app.post('/signup',(req,res)=>{
-  if (!req.body.data){
-    return 
+const bodyParser = require("body-parser");
+// write your logic here, DONT WRITE app.listen(3000) when you're running tests, the tests will automatically start the
+let signupData = [];
+app.use(bodyParser.json());
+app.use("/data", (req, res, next) => {
+  let username = req.headers.username;
+  let password = req.headers.password;
+  let authIndex = signupData.findIndex(
+    (data) => data.username === username && data.password === password
+  );
+  console.log(authIndex);
+  if (authIndex < 0) {
+    return res.status(401).send("Unauthorized");
   }
-    let firstName = req.body.data.firstname
-    let lastname = req.body.data.lastname
-    let username = req.body.data.username
-    let password = req.body.data.password
-})
-app.post('/login',(req,res)=>{
-  
-})
-app.listen(PORT,()=>{
-  console.log("Server is running")
-})
+  next();
+});
+app.post("/signup", (req, res) => {
+  let firstName = req.body.firstname;
+  let lastname = req.body.lastname;
+  let username = req.body.username;
+  let password = req.body.password;
+  let check = signupData.filter((data) => data.username === username).length;
+  let err = { error: "Bad request" };
+  if (!check) {
+    if (firstName && lastname && username && password) {
+      signupData.push({ firstName, lastname, username, password });
+      return res.status(201).send("Created");
+    } else {
+      err.error = "Please enter all details";
+    }
+  }
+  res.status(400).send(err);
+});
+app.post("/login", (req, res) => {
+  let username = req.body.username;
+  let password = req.body.password;
+  if (username && password) {
+    let checkIndex = signupData.findIndex(
+      (data) => data.username === username && data.password === password
+    );
+    if (checkIndex > -1) {
+      let userData = signupData[checkIndex];
+      return res.send({
+        firstname: userData.firstName,
+        lastname: userData.lastname,
+      });
+    }
+    res.status(401).send("Unauthorized");
+  }
+});
+app.get("/data", (req, res) => {
+  let datas = signupData.map((data) => {
+    return {
+      firstname: data.firstName,
+      lastname: data.lastname,
+    };
+  });
+  let obj = {
+    users: datas,
+  };
+  res.json(obj);
+});
+app.all("*", (req, res) => {
+  res.status(404).send("Page not found");
+});
+app.listen(PORT, () => {
+  console.log("Server is running");
+});
 
 module.exports = app;
